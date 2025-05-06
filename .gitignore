@@ -1,0 +1,8 @@
+**/.DS_Store
+**.log
+bin/*
+**/obj/**
+build/premake4
+build/mac
+build/linux
+build/windows
