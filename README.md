@@ -26,4 +26,4 @@ Some highlights of using orx for this project:
 - Similarly, play/stop controls use the object sound control functions
 - Finally, object life times are linked to sound playback. The application will free audio objects automatically if they finish playing without being stopped manually. The engine handles this transparently without any explicit polling or explicit resource management.
 
-My expectation before writing this application was that orx would make it simple to create. And I was as or more simple than I expected!
+My expectation before writing this application was that orx would make it simple to create. And it was as or more simple than I expected!
