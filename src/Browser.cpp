@@ -9,6 +9,21 @@
 
 namespace
 {
+  static std::set<std::string> selectedSections{};
+
+  void SetConfigSections(std::set<std::string> &sections)
+  {
+    selectedSections.clear();
+    selectedSections.insert(sections.cbegin(), sections.cend());
+  }
+
+  orxBOOL ConfigSaveCallback(const orxSTRING _zSectionName, const orxSTRING _zKeyName, const orxSTRING _zFileName, orxBOOL _bUseEncryption)
+  {
+    static const std::set<std::string> KEYS_TO_DROP = {"OnPrepare", "OnCreate", "OnDelete"};
+    auto sectionOk = selectedSections.contains(_zSectionName);
+    return _zKeyName == orxNULL ? sectionOk : sectionOk && !KEYS_TO_DROP.contains(_zKeyName);
+  }
+
   bool IsDirectory(orxFILE_INFO &info)
   {
     return info.u32Flags & orxFILE_KU32_FLAG_INFO_DIRECTORY;
@@ -24,6 +39,33 @@ namespace
     auto extension = orxString_GetExtension(info.zName);
     return !IsDirectory(info) && extension != orxSTRING_EMPTY && orxConfig_GetBool(extension);
   }
+}
+
+void Export::OnCreate()
+{
+}
+
+void Export::OnDelete()
+{
+}
+
+void Export::Update(const orxCLOCK_INFO &_rstInfo)
+{
+  if (ImGui::Begin("Export"))
+  {
+    PushConfigSection();
+    auto filename = orxConfig_GetString("Target");
+    PopConfigSection();
+
+    if (!selectedSections.empty() && filename != orxSTRING_EMPTY)
+    {
+      if (ImGui::Button("Save"))
+      {
+        orxConfig_Save(filename, orxFALSE, ConfigSaveCallback);
+      }
+    }
+  }
+  ImGui::End();
 }
 
 AudioDirectory::AudioDirectory(std::string rootPath)
@@ -84,10 +126,20 @@ void AudioDirectory::Render()
   }
 
   std::string tableID = std::string{"Sounds table##"} + root;
-  if (ImGui::BeginTable(tableID.data(), 3))
+  if (ImGui::BeginTable(tableID.data(), 4))
   {
+    if (sectionNames.size() > 0)
+    {
+      ImGui::TableSetupColumn("File name");
+      ImGui::TableSetupColumn("Play file");
+      ImGui::TableSetupColumn("Stop playback");
+      ImGui::TableSetupColumn("Select for config export");
+      ImGui::TableHeadersRow();
+    }
+
     for (auto name : sectionNames)
     {
+      ImGui::PushID(name.data());
       ImGui::TableNextColumn();
       ImGui::TextUnformatted(name.data());
 
@@ -117,6 +169,22 @@ void AudioDirectory::Render()
       }
 
       ImGui::PopStyleColor();
+
+      ImGui::TableNextColumn();
+      auto checked = selectedSections.contains(name);
+      if (ImGui::Checkbox("Select", &checked))
+      {
+        if (checked)
+        {
+          selectedSections.insert(name);
+        }
+        else
+        {
+          selectedSections.erase(name);
+        }
+      }
+
+      ImGui::PopID();
     }
     ImGui::EndTable();
   }
@@ -160,7 +228,9 @@ void Browser::Update(const orxCLOCK_INFO &_rstInfo)
 
   if (ImGui::Begin(name.data()))
   {
+    PushConfigSection();
     directory->Render();
+    PopConfigSection();
   }
   ImGui::End();
 

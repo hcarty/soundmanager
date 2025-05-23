@@ -95,6 +95,7 @@ void soundmanager::BindObjects()
 {
   BindObject(Browser);
   BindObject(ImGuiDemoWindow);
+  BindObject(Export);
 }
 
 /** Bootstrap function, it is called before config is initialized, allowing for early resource storage definitions

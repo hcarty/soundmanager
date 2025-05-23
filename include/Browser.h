@@ -7,12 +7,24 @@
 #define __BROWSER_H__
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
 #include "imgui.h"
 
 #include "soundmanager.h"
+
+class Export : public ScrollObject
+{
+public:
+protected:
+  void OnCreate();
+  void OnDelete();
+  void Update(const orxCLOCK_INFO &_rstInfo);
+
+private:
+};
 
 struct AudioDirectory
 {
