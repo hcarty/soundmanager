@@ -146,7 +146,7 @@ void AudioDirectory::Render()
       ImGui::TableNextColumn();
       auto playLabel = std::string{"Play##"} + name;
       auto object = GetActiveObject(name);
-      orxFLOAT hNumerator = object == orxNULL ? 1.0 : 2.0;
+      orxFLOAT hNumerator = object == orxNULL ? 1.0f : 2.0f;
       ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(hNumerator / 7.0f, 0.6f, 0.6f));
       if (ImGui::Button(playLabel.data()))
       {
@@ -222,7 +222,8 @@ void Browser::OnDelete()
 
 void Browser::Update(const orxCLOCK_INFO &_rstInfo)
 {
-  ImGui::PushID(GetGUID());
+  std::string id = std::to_string(GetGUID());
+  ImGui::PushID(id.data());
 
   std::string name = std::string{"Sounds: "} + rootPath;
 
