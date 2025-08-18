@@ -34,13 +34,29 @@ struct AudioDirectory
   std::vector<std::string> sectionNames{};
   std::map<std::string, orxU64> activeObjects{};
 
+  char searchBuf[2048]{"\0"};
+  std::set<std::string> searchPathResults{};
+  std::set<std::string> searchNameResults{};
+
   AudioDirectory(std::string rootPath);
 
   void ReadAll();
 
+  /// @brief Setup table header
+  void RenderRowHeader();
+
+  /// @brief Render a single table row
+  /// @param name Name of the sound/music section to use in this row
+  void RenderRow(const std::string &name);
+
+  /// @brief Render full table of entries including the header and rows
   void Render();
 
   orxOBJECT *GetActiveObject(std::string name);
+
+  void SearchNamesContaining(std::string substring);
+
+  bool HasSearchResults();
 };
 
 /** Browser Class
