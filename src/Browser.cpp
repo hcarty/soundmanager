@@ -4,6 +4,7 @@
  */
 
 #include <algorithm>
+#include <cctype>
 
 #include "Browser.h"
 
@@ -39,6 +40,15 @@ namespace
     auto extension = orxString_GetExtension(info.zName);
     return !IsDirectory(info) && extension != orxSTRING_EMPTY && orxConfig_GetBool(extension);
   }
+
+  std::string ToLowercase(const std::string &in)
+  {
+    std::string out(in);
+    auto lc = [](unsigned char c) -> char
+    { return std::tolower(c); };
+    std::transform(out.cbegin(), out.cend(), out.begin(), lc);
+    return out;
+  }
 }
 
 void Export::OnCreate()
@@ -68,7 +78,7 @@ void Export::Update(const orxCLOCK_INFO &_rstInfo)
   ImGui::End();
 }
 
-AudioDirectory::AudioDirectory(std::string rootPath)
+AudioDirectory::AudioDirectory(const std::string &rootPath)
 {
   root = rootPath;
   ReadAll();
@@ -204,7 +214,7 @@ void AudioDirectory::Render()
   }
 }
 
-orxOBJECT *AudioDirectory::GetActiveObject(std::string name)
+orxOBJECT *AudioDirectory::GetActiveObject(const std::string &name)
 {
   orxOBJECT *object = orxNULL;
 
@@ -217,7 +227,7 @@ orxOBJECT *AudioDirectory::GetActiveObject(std::string name)
   return object;
 }
 
-void AudioDirectory::SearchNamesContaining(std::string substring)
+void AudioDirectory::SearchNamesContaining(const std::string &substring)
 {
   searchPathResults.clear();
   searchNameResults.clear();
@@ -234,8 +244,9 @@ void AudioDirectory::SearchNamesContaining(std::string substring)
       continue;
     }
 
-    const auto it = std::search(path.begin(), path.end(), searcher);
-    if (it != path.end())
+    auto lcPath = ToLowercase(path);
+    const auto it = std::search(lcPath.begin(), lcPath.end(), searcher);
+    if (it != lcPath.end())
     {
       searchPathResults.insert(path);
     }
@@ -249,8 +260,9 @@ void AudioDirectory::SearchNamesContaining(std::string substring)
 
   for (const auto &name : sectionNames)
   {
-    const auto it = std::search(name.begin(), name.end(), searcher);
-    if (it != name.end())
+    auto lcName = ToLowercase(name);
+    const auto it = std::search(lcName.begin(), lcName.end(), searcher);
+    if (it != lcName.end())
     {
       searchNameResults.insert(name);
     }
@@ -310,7 +322,7 @@ void Browser::Update(const orxCLOCK_INFO &_rstInfo)
 
     if (searchUpdated)
     {
-      directory->SearchNamesContaining(std::string(directory->searchBuf));
+      directory->SearchNamesContaining(ToLowercase(std::string(directory->searchBuf)));
     }
 
     PushConfigSection();

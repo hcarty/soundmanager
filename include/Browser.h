@@ -38,7 +38,7 @@ struct AudioDirectory
   std::set<std::string> searchPathResults{};
   std::set<std::string> searchNameResults{};
 
-  AudioDirectory(std::string rootPath);
+  AudioDirectory(const std::string &rootPath);
 
   void ReadAll();
 
@@ -52,9 +52,9 @@ struct AudioDirectory
   /// @brief Render full table of entries including the header and rows
   void Render();
 
-  orxOBJECT *GetActiveObject(std::string name);
+  orxOBJECT *GetActiveObject(const std::string &name);
 
-  void SearchNamesContaining(std::string substring);
+  void SearchNamesContaining(const std::string &substring);
 
   bool HasSearchResults();
 };
