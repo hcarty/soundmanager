@@ -106,8 +106,10 @@ void AudioDirectory::ReadAll()
       continue;
     }
 
+    AudioName audioName(info.zName, info.zPath, info.zFullName);
+
     // It looks like a requested audio file type, so add it to config
-    orxConfig_PushSection(info.zName);
+    orxConfig_PushSection(audioName.sectionName.data());
     orxConfig_SetString("OnPrepare", "> @, > Get Runtime <, > Not <, return <");
     orxConfig_SetString("OnCreate", "> @, Set Runtime < true");
     orxConfig_SetString("OnDelete", "> Object.GetName ^, Set Runtime < false, return true");
@@ -115,7 +117,7 @@ void AudioDirectory::ReadAll()
     orxConfig_SetString("SoundList", "@");
     orxConfig_SetString("Music", info.zFullName);
     orxConfig_PopSection();
-    sectionNames.push_back(std::string{info.zName});
+    sectionNames.push_back(audioName);
   }
   orxFile_FindClose(&info);
 
@@ -131,31 +133,31 @@ void AudioDirectory::RenderRowHeader()
   ImGui::TableHeadersRow();
 }
 
-void AudioDirectory::RenderRow(const std::string &name)
+void AudioDirectory::RenderRow(const AudioName &audioName)
 {
-  ImGui::PushID(name.data());
+  ImGui::PushID(audioName.sectionName.data());
   ImGui::TableNextColumn();
-  ImGui::TextUnformatted(name.data());
+  ImGui::TextUnformatted(audioName.name.data());
 
   ImGui::TableNextColumn();
-  auto playLabel = std::string{"Play##"} + name;
-  auto object = GetActiveObject(name);
+  auto playLabel = std::string{"Play##"} + audioName.sectionName;
+  auto object = GetActiveObject(audioName.sectionName);
   orxFLOAT hNumerator = object == orxNULL ? 1.0f : 2.0f;
   ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(hNumerator / 7.0f, 0.6f, 0.6f));
   if (ImGui::Button(playLabel.data()))
   {
-    auto object = orxObject_CreateFromConfig(name.data());
+    auto object = orxObject_CreateFromConfig(audioName.sectionName.data());
     if (object != orxNULL)
     {
-      activeObjects[name] = orxStructure_GetGUID(orxSTRUCTURE(object));
+      activeObjects[audioName.sectionName] = orxStructure_GetGUID(orxSTRUCTURE(object));
     }
   }
 
   ImGui::TableNextColumn();
-  auto stopLabel = std::string{"Stop##"} + name;
+  auto stopLabel = std::string{"Stop##"} + audioName.sectionName;
   if (ImGui::Button(stopLabel.data()))
   {
-    auto object = GetActiveObject(name);
+    auto object = GetActiveObject(audioName.sectionName);
     if (object != orxNULL)
     {
       orxObject_SetLifeTime(object, 0);
@@ -165,16 +167,16 @@ void AudioDirectory::RenderRow(const std::string &name)
   ImGui::PopStyleColor();
 
   ImGui::TableNextColumn();
-  auto checked = selectedSections.contains(name);
+  auto checked = selectedSections.contains(audioName.sectionName);
   if (ImGui::Checkbox("Select", &checked))
   {
     if (checked)
     {
-      selectedSections.insert(name);
+      selectedSections.insert(audioName.sectionName);
     }
     else
     {
-      selectedSections.erase(name);
+      selectedSections.erase(audioName.sectionName);
     }
   }
 
@@ -185,13 +187,17 @@ void AudioDirectory::Render()
 {
   for (const auto &[path, directory] : subdirectories)
   {
-    ImGuiTreeNodeFlags flags = directory->HasSearchResults() ? ImGuiTreeNodeFlags_DefaultOpen : 0;
-    if (ImGui::CollapsingHeader(path.data(), flags))
+    auto hasSearchResults = directory->HasSearchResults();
+    if (searchSubstring.empty() || hasSearchResults || searchPathResults.contains(path))
     {
-      const orxFLOAT indentWidth = 5.0f;
-      ImGui::Indent(indentWidth);
-      directory->Render();
-      ImGui::Unindent(indentWidth);
+      ImGuiTreeNodeFlags flags = hasSearchResults ? ImGuiTreeNodeFlags_DefaultOpen : 0;
+      if (ImGui::CollapsingHeader(path.data(), flags))
+      {
+        const orxFLOAT indentWidth = 5.0f;
+        ImGui::Indent(indentWidth);
+        directory->Render();
+        ImGui::Unindent(indentWidth);
+      }
     }
   }
 
@@ -203,11 +209,11 @@ void AudioDirectory::Render()
       RenderRowHeader();
     }
 
-    for (auto name : sectionNames)
+    for (auto audioName : sectionNames)
     {
-      if (searchNameResults.empty() || searchNameResults.contains(name))
+      if (searchSubstring.empty() || searchNameResults.contains(audioName.sectionName))
       {
-        RenderRow(name);
+        RenderRow(audioName);
       }
     }
     ImGui::EndTable();
@@ -229,10 +235,13 @@ orxOBJECT *AudioDirectory::GetActiveObject(const std::string &name)
 
 void AudioDirectory::SearchNamesContaining(const std::string &substring)
 {
+  searchSubstring = substring;
   searchPathResults.clear();
   searchNameResults.clear();
 
   const std::boyer_moore_searcher searcher(substring.begin(), substring.end());
+  const std::string nullChar{'\0'};
+  const std::boyer_moore_searcher nullSearch(nullChar.begin(), nullChar.end());
 
   for (const auto &[path, subdir] : subdirectories)
   {
@@ -258,13 +267,13 @@ void AudioDirectory::SearchNamesContaining(const std::string &substring)
     return;
   }
 
-  for (const auto &name : sectionNames)
+  for (const auto &audioName : sectionNames)
   {
-    auto lcName = ToLowercase(name);
+    auto lcName = ToLowercase(audioName.name);
     const auto it = std::search(lcName.begin(), lcName.end(), searcher);
     if (it != lcName.end())
     {
-      searchNameResults.insert(name);
+      searchNameResults.insert(audioName.sectionName);
     }
   }
 }
@@ -318,11 +327,11 @@ void Browser::Update(const orxCLOCK_INFO &_rstInfo)
   {
     ImGui::Text("Search");
     ImGui::SameLine();
-    auto searchUpdated = ImGui::InputText("##", directory->searchBuf, sizeof(directory->searchBuf));
+    auto searchUpdated = ImGui::InputText("##", searchBuf, sizeof(searchBuf));
 
     if (searchUpdated)
     {
-      directory->SearchNamesContaining(ToLowercase(std::string(directory->searchBuf)));
+      directory->SearchNamesContaining(ToLowercase(std::string(searchBuf)));
     }
 
     PushConfigSection();

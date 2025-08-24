@@ -27,14 +27,26 @@ protected:
 private:
 };
 
+struct AudioName
+{
+  std::string name{};
+  std::string path{};
+  std::string sectionName{};
+
+  inline bool operator<(const AudioName &other) const
+  {
+    return sectionName < other.sectionName;
+  }
+};
+
 struct AudioDirectory
 {
-  std::string root;
+  std::string root{};
   std::map<std::string, std::unique_ptr<AudioDirectory>> subdirectories{};
-  std::vector<std::string> sectionNames{};
+  std::vector<AudioName> sectionNames{};
   std::map<std::string, orxU64> activeObjects{};
 
-  char searchBuf[2048]{"\0"};
+  std::string searchSubstring{};
   std::set<std::string> searchPathResults{};
   std::set<std::string> searchNameResults{};
 
@@ -47,7 +59,7 @@ struct AudioDirectory
 
   /// @brief Render a single table row
   /// @param name Name of the sound/music section to use in this row
-  void RenderRow(const std::string &name);
+  void RenderRow(const AudioName &audioName);
 
   /// @brief Render full table of entries including the header and rows
   void Render();
@@ -71,6 +83,8 @@ protected:
 
 private:
   std::string rootPath{};
+
+  char searchBuf[2048]{"\0"};
 
   std::unique_ptr<AudioDirectory> directory;
 };
