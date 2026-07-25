@@ -133,7 +133,10 @@ solution "soundmanager"
 
     configuration {"*Profile*"}
         targetsuffix ("p")
-        defines {"__orxPROFILER__"}
+        defines
+        {
+            "__orxPROFILER__"
+        }
         flags {"Optimize", "NoRTTI"}
         links {"orxp"}
 

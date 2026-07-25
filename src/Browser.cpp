@@ -5,6 +5,10 @@
 
 #include <algorithm>
 #include <cctype>
+#include <charconv>
+#include <optional>
+#include <regex>
+#include <string>
 
 #include "Browser.h"
 
@@ -48,6 +52,35 @@ namespace
     { return std::tolower(c); };
     std::transform(out.cbegin(), out.cend(), out.begin(), lc);
     return out;
+  }
+
+  /// @brief Get the loop time offset from the pathname for an Ovani music file
+  /// @param filename The pathname of the file to parse
+  /// @return The loop time offset, or std::nullopt if not found
+  std::optional<double> GetRTValue(const std::string &filename)
+  {
+    static const std::regex re(R"(\(RT\s+([+-]?\d+(?:\.\d+)?)\))");
+    std::smatch match;
+
+    if (!std::regex_search(filename, match, re))
+    {
+      return std::nullopt;
+    }
+
+    const std::string numStr = match[1].str();
+
+    double value = 0.0;
+    const auto result = std::from_chars(
+        numStr.data(),
+        numStr.data() + numStr.size(),
+        value);
+
+    if (result.ec != std::errc{} || result.ptr != numStr.data() + numStr.size())
+    {
+      return std::nullopt;
+    }
+
+    return value;
   }
 }
 
