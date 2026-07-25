@@ -32,6 +32,7 @@ struct AudioName
   std::string name{};
   std::string path{};
   std::string sectionName{};
+  double_t loopTimeOffset{0.0};
 
   inline bool operator<(const AudioName &other) const
   {

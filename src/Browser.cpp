@@ -54,10 +54,10 @@ namespace
     return out;
   }
 
-  /// @brief Get the loop time offset from the pathname for an Ovani music file
+  /// @brief Get the loop time offset from the pathname for an Ovani music filename
   /// @param filename The pathname of the file to parse
   /// @return The loop time offset, or std::nullopt if not found
-  std::optional<double> GetRTValue(const std::string &filename)
+  std::optional<double> GetLoopOffset(const std::string &filename)
   {
     static const std::regex re(R"(\(RT\s+([+-]?\d+(?:\.\d+)?)\))");
     std::smatch match;
@@ -139,7 +139,9 @@ void AudioDirectory::ReadAll()
       continue;
     }
 
-    AudioName audioName(info.zName, info.zPath, info.zFullName);
+    auto loopTimeOffset = GetLoopOffset(info.zFullName).value_or(0.0f);
+
+    AudioName audioName(info.zName, info.zPath, info.zFullName, loopTimeOffset);
 
     // It looks like a requested audio file type, so add it to config
     orxConfig_PushSection(audioName.sectionName.data());
@@ -149,6 +151,7 @@ void AudioDirectory::ReadAll()
     orxConfig_SetString("LifeTime", "sound");
     orxConfig_SetString("SoundList", "@");
     orxConfig_SetString("Music", info.zFullName);
+    orxConfig_SetFloat("LoopTimeOffset", loopTimeOffset);
     orxConfig_PopSection();
     sectionNames.push_back(audioName);
   }
@@ -162,6 +165,7 @@ void AudioDirectory::RenderRowHeader()
   ImGui::TableSetupColumn("File name");
   ImGui::TableSetupColumn("Play file");
   ImGui::TableSetupColumn("Stop playback");
+  ImGui::TableSetupColumn("Loop");
   ImGui::TableSetupColumn("Select for config export");
   ImGui::TableHeadersRow();
 }
@@ -199,6 +203,16 @@ void AudioDirectory::RenderRow(const AudioName &audioName)
 
   ImGui::PopStyleColor();
 
+  orxConfig_PushSection(audioName.sectionName.data());
+  ImGui::TableNextColumn();
+  auto loopLabel = std::string{"Loop##"} + audioName.sectionName;
+  bool loop = orxConfig_GetBool("Loop");
+  if (ImGui::Checkbox(loopLabel.data(), &loop))
+  {
+    orxConfig_SetBool("Loop", loop);
+  }
+  orxConfig_PopSection();
+
   ImGui::TableNextColumn();
   auto checked = selectedSections.contains(audioName.sectionName);
   if (ImGui::Checkbox("Select", &checked))
@@ -235,7 +249,7 @@ void AudioDirectory::Render()
   }
 
   std::string tableID = std::string{"Sounds table##"} + root;
-  if (ImGui::BeginTable(tableID.data(), 4))
+  if (ImGui::BeginTable(tableID.data(), 5))
   {
     if (sectionNames.size() > 0)
     {
