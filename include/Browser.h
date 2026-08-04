@@ -72,6 +72,20 @@ struct AudioDirectory
   bool HasSearchResults();
 };
 
+class BrowserAudio : public ScrollObject
+{
+public:
+protected:
+  void OnCreate();
+  void OnDelete();
+  void Update(const orxCLOCK_INFO &_rstInfo);
+
+private:
+  orxBOOL m_bLoop{orxFALSE};
+  orxFLOAT m_fLoopTimeOffset{0.0f};
+  orxSOUND *m_pstSound{orxNULL};
+};
+
 /** Browser Class
  */
 class Browser : public ScrollObject

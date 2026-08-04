@@ -12,6 +12,10 @@
 
 #include "Browser.h"
 
+const auto zLOOP = "Loop";
+const auto zSHOULD_LOOP = "ShouldLoop";
+const auto zLOOP_TIME_OFFSET = "LoopTimeOffset";
+
 namespace
 {
   static std::set<std::string> selectedSections{};
@@ -153,6 +157,7 @@ void AudioDirectory::ReadAll()
     orxConfig_SetString("Music", info.zFullName);
     orxConfig_SetFloat("LoopTimeOffset", loopTimeOffset);
     orxConfig_PopSection();
+    orxConfig_SetParent(audioName.sectionName.data(), "BrowserAudio");
     sectionNames.push_back(audioName);
   }
   orxFile_FindClose(&info);
@@ -206,10 +211,14 @@ void AudioDirectory::RenderRow(const AudioName &audioName)
   orxConfig_PushSection(audioName.sectionName.data());
   ImGui::TableNextColumn();
   auto loopLabel = std::string{"Loop##"} + audioName.sectionName;
-  bool loop = orxConfig_GetBool("Loop");
+  bool loop = orxConfig_GetBool(zSHOULD_LOOP);
   if (ImGui::Checkbox(loopLabel.data(), &loop))
   {
-    orxConfig_SetBool("Loop", loop);
+    orxConfig_SetBool(zSHOULD_LOOP, loop);
+    if (orxConfig_GetFloat(zLOOP_TIME_OFFSET) == 0.0f)
+    {
+      orxConfig_SetBool(zLOOP, orxTRUE);
+    }
   }
   orxConfig_PopSection();
 
@@ -344,6 +353,40 @@ bool AudioDirectory::HasSearchResults()
 
   // No results if we make it this far
   return false;
+}
+
+void BrowserAudio::OnCreate()
+{
+  PushConfigSection();
+  m_fLoopTimeOffset = orxConfig_GetFloat(zLOOP_TIME_OFFSET);
+  auto m_bLoop = orxConfig_GetBool(zSHOULD_LOOP);
+  PopConfigSection();
+
+  m_pstSound = orxObject_GetLastAddedSound(GetOrxObject());
+  if (m_bLoop && m_fLoopTimeOffset > 0.0f)
+  {
+    // We handle looping separately, without using the built-in looping audio support, when there is an offset
+    orxSound_Loop(m_pstSound, orxFALSE);
+  }
+}
+
+void BrowserAudio::OnDelete()
+{
+}
+
+void BrowserAudio::Update(const orxCLOCK_INFO &_rstInfo)
+{
+  auto duration = orxSound_GetDuration(m_pstSound);
+  if (duration > 0.0f && m_fLoopTimeOffset > 0.0f)
+  {
+    auto fLoopTime = duration - m_fLoopTimeOffset;
+    if (orxSound_GetTime(m_pstSound) >= fLoopTime)
+    {
+      AddSound(GetName());
+      m_pstSound = orxObject_GetLastAddedSound(GetOrxObject());
+      orxSound_Loop(m_pstSound, orxFALSE);
+    }
+  }
 }
 
 void Browser::OnCreate()

@@ -93,6 +93,7 @@ void soundmanager::Exit()
  */
 void soundmanager::BindObjects()
 {
+  BindObject(BrowserAudio);
   BindObject(Browser);
   BindObject(ImGuiDemoWindow);
   BindObject(Export);
