@@ -170,6 +170,7 @@ void AudioDirectory::RenderRowHeader()
   ImGui::TableSetupColumn("File name");
   ImGui::TableSetupColumn("Play file");
   ImGui::TableSetupColumn("Stop playback");
+  ImGui::TableSetupColumn("Pause/resume");
   ImGui::TableSetupColumn("Loop");
   ImGui::TableSetupColumn("Select for config export");
   ImGui::TableHeadersRow();
@@ -184,7 +185,8 @@ void AudioDirectory::RenderRow(const AudioName &audioName)
   ImGui::TableNextColumn();
   auto playLabel = std::string{"Play##"} + audioName.sectionName;
   auto object = GetActiveObject(audioName.sectionName);
-  orxFLOAT hNumerator = object == orxNULL ? 1.0f : 2.0f;
+  auto active = object != orxNULL;
+  orxFLOAT hNumerator = active ? 2.0f : 1.0f;
   ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(hNumerator / 7.0f, 0.6f, 0.6f));
   if (ImGui::Button(playLabel.data()))
   {
@@ -193,6 +195,11 @@ void AudioDirectory::RenderRow(const AudioName &audioName)
     {
       activeObjects[audioName.sectionName] = orxStructure_GetGUID(orxSTRUCTURE(object));
     }
+  }
+
+  if (!active)
+  {
+    ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.0f, 0.6f));
   }
 
   ImGui::TableNextColumn();
@@ -204,6 +211,26 @@ void AudioDirectory::RenderRow(const AudioName &audioName)
     {
       orxObject_SetLifeTime(object, 0);
     }
+  }
+
+  ImGui::TableNextColumn();
+  if (object != orxNULL)
+  {
+    auto paused = orxObject_IsPaused(object);
+    auto pauseLabel = std::string{(paused ? "Resume##" : "Pause##")} + audioName.sectionName;
+    if (ImGui::Button(pauseLabel.data()))
+    {
+      orxObject_Pause(object, !paused);
+    }
+  }
+  else
+  {
+    ImGui::Button("Pause");
+  }
+
+  if (!active)
+  {
+    ImGui::PopStyleColor();
   }
 
   ImGui::PopStyleColor();
@@ -258,7 +285,7 @@ void AudioDirectory::Render()
   }
 
   std::string tableID = std::string{"Sounds table##"} + root;
-  if (ImGui::BeginTable(tableID.data(), 5))
+  if (ImGui::BeginTable(tableID.data(), 6))
   {
     if (sectionNames.size() > 0)
     {
