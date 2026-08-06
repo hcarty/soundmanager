@@ -401,7 +401,7 @@ void BrowserAudio::OnCreate()
 {
   PushConfigSection();
   m_fLoopTimeOffset = orxConfig_GetFloat(zLOOP_TIME_OFFSET);
-  auto m_bLoop = orxConfig_GetBool(zSHOULD_LOOP);
+  m_bLoop = orxConfig_GetBool(zSHOULD_LOOP);
   PopConfigSection();
 
   m_pstSound = orxObject_GetLastAddedSound(GetOrxObject());
@@ -419,7 +419,7 @@ void BrowserAudio::OnDelete()
 void BrowserAudio::Update(const orxCLOCK_INFO &_rstInfo)
 {
   auto duration = orxSound_GetDuration(m_pstSound);
-  if (duration > 0.0f && m_fLoopTimeOffset > 0.0f)
+  if (m_bLoop && duration > 0.0f && m_fLoopTimeOffset > 0.0f)
   {
     auto fLoopTime = duration - m_fLoopTimeOffset;
     if (orxSound_GetTime(m_pstSound) >= fLoopTime)
