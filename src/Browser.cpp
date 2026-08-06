@@ -169,8 +169,9 @@ void AudioDirectory::RenderRowHeader()
 {
   ImGui::TableSetupColumn("File name");
   ImGui::TableSetupColumn("Play file");
-  ImGui::TableSetupColumn("Stop playback");
   ImGui::TableSetupColumn("Pause/resume");
+  ImGui::TableSetupColumn("Stop playback");
+  ImGui::TableSetupColumn("Time");
   ImGui::TableSetupColumn("Loop");
   ImGui::TableSetupColumn("Select for config export");
   ImGui::TableHeadersRow();
@@ -203,6 +204,21 @@ void AudioDirectory::RenderRow(const AudioName &audioName)
   }
 
   ImGui::TableNextColumn();
+  if (object != orxNULL)
+  {
+    auto paused = orxObject_IsPaused(object);
+    auto pauseLabel = std::string{paused ? "Resume##" : "Pause##"} + audioName.sectionName;
+    if (ImGui::Button(pauseLabel.data()))
+    {
+      orxObject_Pause(object, !paused);
+    }
+  }
+  else
+  {
+    ImGui::Button("Pause");
+  }
+
+  ImGui::TableNextColumn();
   auto stopLabel = std::string{"Stop##"} + audioName.sectionName;
   if (ImGui::Button(stopLabel.data()))
   {
@@ -214,19 +230,18 @@ void AudioDirectory::RenderRow(const AudioName &audioName)
   }
 
   ImGui::TableNextColumn();
+  orxCHAR timeBuf[64] = "--:--";
   if (object != orxNULL)
   {
-    auto paused = orxObject_IsPaused(object);
-    auto pauseLabel = std::string{(paused ? "Resume##" : "Pause##")} + audioName.sectionName;
-    if (ImGui::Button(pauseLabel.data()))
+    auto sound = orxObject_GetLastAddedSound(object);
+    if (sound != orxNULL && orxSound_GetStatus(sound) != orxSOUND_STATUS_STOP)
     {
-      orxObject_Pause(object, !paused);
+      auto time = orxSound_GetTime(sound);
+      auto duration = orxSound_GetDuration(sound);
+      orxString_NPrint(timeBuf, sizeof(timeBuf), "%.2f:%.2f", time, duration);
     }
   }
-  else
-  {
-    ImGui::Button("Pause");
-  }
+  ImGui::TextUnformatted(timeBuf);
 
   if (!active)
   {
@@ -285,7 +300,7 @@ void AudioDirectory::Render()
   }
 
   std::string tableID = std::string{"Sounds table##"} + root;
-  if (ImGui::BeginTable(tableID.data(), 6))
+  if (ImGui::BeginTable(tableID.data(), 7))
   {
     if (sectionNames.size() > 0)
     {
