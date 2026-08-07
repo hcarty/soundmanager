@@ -289,8 +289,12 @@ void AudioDirectory::Render()
   }
 
   std::string tableID = std::string{"Sounds table##"} + root;
-  const auto tableFlags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Resizable;
-  if (ImGui::BeginTable(tableID.data(), 6))
+  const auto tableFlags =
+      ImGuiTableFlags_SizingFixedFit |
+      ImGuiTableFlags_Resizable |
+      ImGuiTableFlags_Borders |
+      ImGuiTableFlags_RowBg;
+  if (ImGui::BeginTable(tableID.data(), 6, tableFlags))
   {
     if (sectionNames.size() > 0)
     {
