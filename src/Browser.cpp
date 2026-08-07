@@ -167,12 +167,12 @@ void AudioDirectory::ReadAll()
 
 void AudioDirectory::RenderRowHeader()
 {
-  ImGui::TableSetupColumn("File name");
-  ImGui::TableSetupColumn("Play/Pause");
-  ImGui::TableSetupColumn("Stop playback");
-  ImGui::TableSetupColumn("Time");
-  ImGui::TableSetupColumn("Loop");
-  ImGui::TableSetupColumn("Select for config export");
+  ImGui::TableSetupColumn("File name", ImGuiTableColumnFlags_WidthStretch);
+  ImGui::TableSetupColumn("Play/Pause", ImGuiTableColumnFlags_WidthFixed);
+  ImGui::TableSetupColumn("Stop", ImGuiTableColumnFlags_WidthFixed);
+  ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthStretch);
+  ImGui::TableSetupColumn("Loop", ImGuiTableColumnFlags_WidthFixed);
+  ImGui::TableSetupColumn("Select for config export", ImGuiTableColumnFlags_WidthFixed);
   ImGui::TableHeadersRow();
 }
 
@@ -289,6 +289,7 @@ void AudioDirectory::Render()
   }
 
   std::string tableID = std::string{"Sounds table##"} + root;
+  const auto tableFlags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Resizable;
   if (ImGui::BeginTable(tableID.data(), 6))
   {
     if (sectionNames.size() > 0)
