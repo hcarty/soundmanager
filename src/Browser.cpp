@@ -18,18 +18,14 @@ const auto zLOOP_TIME_OFFSET = "LoopTimeOffset";
 
 namespace
 {
-  static std::set<std::string> selectedSections{};
-
-  void SetConfigSections(std::set<std::string> &sections)
-  {
-    selectedSections.clear();
-    selectedSections.insert(sections.cbegin(), sections.cend());
-  }
+  static std::set<AudioName> selectedSections{};
 
   orxBOOL ConfigSaveCallback(const orxSTRING _zSectionName, const orxSTRING _zKeyName, const orxSTRING _zFileName, orxBOOL _bUseEncryption)
   {
     static const std::set<std::string> KEYS_TO_DROP = {"OnPrepare", "OnCreate", "OnDelete"};
-    auto sectionOk = selectedSections.contains(_zSectionName);
+    AudioName key;
+    key.sectionName = _zSectionName;
+    auto sectionOk = selectedSections.contains(key);
     return _zKeyName == orxNULL ? sectionOk : sectionOk && !KEYS_TO_DROP.contains(_zKeyName);
   }
 
@@ -103,6 +99,61 @@ void Export::Update(const orxCLOCK_INFO &_rstInfo)
     PushConfigSection();
     auto filename = orxConfig_GetString("Target");
     PopConfigSection();
+
+    auto count = selectedSections.size();
+    ImGui::Text("Selected files: %zu", count);
+
+    if (count == 0)
+    {
+      ImGui::TextUnformatted("No files selected for export.");
+    }
+    else
+    {
+      if (ImGui::Button("Clear all"))
+      {
+        selectedSections.clear();
+      }
+
+      const auto tableFlags =
+          ImGuiTableFlags_SizingFixedFit |
+          ImGuiTableFlags_Resizable |
+          ImGuiTableFlags_Borders |
+          ImGuiTableFlags_RowBg;
+      if (ImGui::BeginTable("Export table", 3, tableFlags))
+      {
+        ImGui::TableSetupColumn("File name", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("Path", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("Remove", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableHeadersRow();
+
+        for (auto it = selectedSections.cbegin(); it != selectedSections.cend();)
+        {
+          const auto &audioName = *it;
+          ImGui::PushID(audioName.sectionName.data());
+          ImGui::TableNextColumn();
+          ImGui::TextUnformatted(audioName.name.data());
+
+          ImGui::TableNextColumn();
+          ImGui::TextUnformatted(audioName.path.data());
+
+          ImGui::TableNextColumn();
+          ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
+          auto removeLabel = std::string{"Remove##"} + audioName.sectionName;
+          if (ImGui::Button(removeLabel.data()))
+          {
+            // std::set::erase returns the iterator following the erased element
+            it = selectedSections.erase(it);
+            ImGui::PopStyleColor();
+            ImGui::PopID();
+            continue;
+          }
+          ImGui::PopStyleColor();
+          ImGui::PopID();
+          ++it;
+        }
+        ImGui::EndTable();
+      }
+    }
 
     if (!selectedSections.empty() && filename != orxSTRING_EMPTY)
     {
@@ -254,16 +305,16 @@ void AudioDirectory::RenderRow(const AudioName &audioName)
   orxConfig_PopSection();
 
   ImGui::TableNextColumn();
-  auto checked = selectedSections.contains(audioName.sectionName);
+  auto checked = selectedSections.contains(audioName);
   if (ImGui::Checkbox("Select", &checked))
   {
     if (checked)
     {
-      selectedSections.insert(audioName.sectionName);
+      selectedSections.insert(audioName);
     }
     else
     {
-      selectedSections.erase(audioName.sectionName);
+      selectedSections.erase(audioName);
     }
   }
 
